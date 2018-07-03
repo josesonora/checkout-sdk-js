@@ -154,6 +154,30 @@ describe('BraintreeCreditCardPaymentStrategy', () => {
                 .toHaveBeenCalledWith(payload.payment);
         });
 
+        it('does nothing to CryptogramInstruments', async () => {
+            const payload = {
+                ...orderRequestBody,
+                payment: {
+                    methodId: 'braintree',
+                    paymentData: {
+                        cryptogramId: 'cryptogram_token_123',
+                        eci: 'eci123',
+                        transactionId: '123',
+                        ccExpiry: {
+                            month: '01',
+                            year: '20',
+                        },
+                        ccNumber: 'cc_number',
+                        accountMask: '01*****19'
+                    },
+                },
+            };
+
+            await braintreeCreditCardPaymentStrategy.execute(payload, options);
+
+            expect(paymentActionCreator.submitPayment).toHaveBeenCalledWith(payload.payment);
+        });
+
         it('tokenizes the card', async () => {
             const expected = {
                 ...orderRequestBody.payment,
