@@ -4,6 +4,7 @@ import { MissingDataError, MissingDataErrorType, StandardError } from '../../../
 import { OrderActionCreator, OrderPaymentRequestBody, OrderRequestBody } from '../../../order';
 import { PaymentArgumentInvalidError } from '../../errors';
 import isCreditCardLike from '../../is-credit-card-like';
+import isCryptogramInstrument from '../../is-cryptogram-instrument';
 import isVaultedInstrument from '../../is-vaulted-instrument';
 import { PaymentInstrument } from '../../payment';
 import PaymentActionCreator from '../../payment-action-creator';
@@ -88,7 +89,7 @@ export default class BraintreeCreditCardPaymentStrategy extends PaymentStrategy 
         const { paymentData } = payment;
         const state = this._store.getState();
 
-        if (paymentData && this._isUsingVaulting(paymentData)) {
+        if (paymentData && (this._isUsingVaulting(paymentData) || isCryptogramInstrument(paymentData))) {
             return Promise.resolve(payment as Payment);
         }
 
