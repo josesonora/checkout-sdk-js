@@ -107,11 +107,11 @@ export interface TokenizePayload {
     details: {
         cardType: string;
         lastFour: string;
-        lastTwo: string;
+        lastTwo?: string;
     };
-    description: string;
+    description?: string;
     type: TokenizeType;
-    binData: {
+    binData?: {
         commercial: string;
         countryOfIssuance: string;
         debit: string;
@@ -216,7 +216,7 @@ export interface GooglePayPaymentDataRequestV2 {
                 'braintree:sdkVersion'?: string;
                 'braintree:authorizationFingerprint'?: string;
                 'stripe:version'?: string;
-                'stripe.publishableKey'?: string;
+                'stripe:publishableKey'?: string;
             };
         };
     }];

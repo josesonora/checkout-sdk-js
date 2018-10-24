@@ -7,7 +7,7 @@ import { BraintreeScriptLoader, BraintreeSDKCreator } from '../braintree';
 
 import { GooglePayBraintreeInitializer,  GooglePayPaymentProcessor, GooglePayScriptLoader } from '.';
 
-export default function createGooglePayPaymentProcessor(
+export default function createGooglePayBraintreePaymentProcessor(
     store: CheckoutStore,
     scriptLoader: ScriptLoader): GooglePayPaymentProcessor {
 

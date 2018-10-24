@@ -12,7 +12,11 @@ import { getConfigState } from '../../../config/configs.mock';
 import { getCustomerState } from '../../../customer/customers.mock';
 import { PaymentMethod, PaymentMethodActionCreator, PaymentMethodRequestSender } from '../../../payment';
 import { getPaymentMethodsState } from '../../../payment/payment-methods.mock';
-import { createGooglePayPaymentProcessor, GooglePaymentData, GooglePayPaymentProcessor } from '../../../payment/strategies/googlepay';
+import {
+    createGooglePayBraintreePaymentProcessor,
+    GooglePaymentData,
+    GooglePayPaymentProcessor
+} from '../../../payment/strategies/googlepay';
 import { getGooglePaymentDataMock } from '../../../payment/strategies/googlepay/googlepay.mock';
 import { CheckoutButtonInitializeOptions } from '../../checkout-button-options';
 
@@ -52,7 +56,7 @@ describe('GooglePayBraintreeCheckoutButtonStrategy', () => {
             new ConfigActionCreator(new ConfigRequestSender(requestSender))
         );
 
-        paymentProcessor = createGooglePayPaymentProcessor(store, createScriptLoader());
+        paymentProcessor = createGooglePayBraintreePaymentProcessor(store, createScriptLoader());
 
         formPoster = createFormPoster();
 
