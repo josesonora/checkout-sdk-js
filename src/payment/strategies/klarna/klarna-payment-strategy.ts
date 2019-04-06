@@ -96,9 +96,19 @@ export default class KlarnaPaymentStrategy implements PaymentStrategy {
         return this._store.dispatch(this._paymentMethodActionCreator.loadPaymentMethod(methodId))
             .then(state => new Promise<KlarnaLoadResponse>((resolve, reject) => {
                 const paymentMethod = state.paymentMethods.getPaymentMethod(methodId);
+                const shippingAddress = state.shippingAddress.getShippingAddress();
+                const billingAddress = state.billingAddress.getBillingAddress();
 
                 if (!paymentMethod) {
                     throw new MissingDataError(MissingDataErrorType.MissingPaymentMethod);
+                }
+
+                if (!billingAddress) {
+                    throw new MissingDataError(MissingDataErrorType.MissingBillingAddress);
+                }
+
+                if (!shippingAddress) {
+                    throw new MissingDataError(MissingDataErrorType.MissingShippingAddress);
                 }
 
                 if (!this._klarnaCredit || !paymentMethod.clientToken) {
@@ -107,7 +117,28 @@ export default class KlarnaPaymentStrategy implements PaymentStrategy {
 
                 this._klarnaCredit.init({ client_token: paymentMethod.clientToken });
 
-                this._klarnaCredit.load({ container }, response => {
+                this._klarnaCredit.load({ container }, {
+                    billing_address: {
+                        street_address: billingAddress.address1,
+                        city: billingAddress.city,
+                        country: billingAddress.countryCode,
+                        given_name: billingAddress.firstName,
+                        family_name: billingAddress.lastName,
+                        postal_code: billingAddress.postalCode,
+                        region: billingAddress.stateOrProvince,
+                        email: billingAddress.email,
+                    },
+                    shipping_address: {
+                        street_address: shippingAddress.address1,
+                        city: shippingAddress.city,
+                        country: shippingAddress.countryCode,
+                        given_name: shippingAddress.firstName,
+                        family_name: shippingAddress.lastName,
+                        postal_code: shippingAddress.postalCode,
+                        region: shippingAddress.stateOrProvince,
+                        email: billingAddress.email,
+                    },
+                }, response => {
                     if (onLoad) {
                         onLoad(response);
                     }

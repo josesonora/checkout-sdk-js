@@ -13,7 +13,10 @@ import {
 import { OrderActionCreator, OrderActionType, OrderRequestBody, OrderRequestSender } from '../../../order';
 import { OrderFinalizationNotRequiredError } from '../../../order/errors';
 import { getOrderRequestBody } from '../../../order/internal-orders.mock';
-import { getKlarna, getPaymentMethodsState } from '../../../payment/payment-methods.mock';
+import { getShippingAddress } from '../../../shipping/shipping-addresses.mock';
+import { getKlarna } from '../../../payment/payment-methods.mock';
+import { getBillingAddress } from '../../../billing/billing-addresses.mock';
+import { getCheckoutStoreState } from '../../../checkout/checkouts.mock';
 import { RemoteCheckoutActionCreator, RemoteCheckoutActionType, RemoteCheckoutRequestSender } from '../../../remote-checkout';
 import { PaymentMethodCancelledError, PaymentMethodInvalidError } from '../../errors';
 import PaymentMethod from '../../payment-method';
@@ -40,9 +43,14 @@ describe('KlarnaPaymentStrategy', () => {
     let strategy: KlarnaPaymentStrategy;
 
     beforeEach(() => {
-        store = createCheckoutStore({
-            paymentMethods: getPaymentMethodsState(),
-        });
+        const paymentMethodMock = { ...getKlarna(), clientToken: 'foo' };
+        store = createCheckoutStore(getCheckoutStoreState());
+
+        jest.spyOn(store, 'dispatch').mockReturnValue(Promise.resolve(store.getState()));
+        jest.spyOn(store.getState().shippingAddress, 'getShippingAddress').mockReturnValue(getShippingAddress());
+        jest.spyOn(store.getState().billingAddress, 'getBillingAddress').mockReturnValue(getBillingAddress());
+        jest.spyOn(store.getState().paymentMethods, 'getPaymentMethod').mockReturnValue(paymentMethodMock);
+
         orderActionCreator = new OrderActionCreator(
             new OrderRequestSender(createRequestSender()),
             new CheckoutValidator(new CheckoutRequestSender(createRequestSender()))
@@ -63,7 +71,7 @@ describe('KlarnaPaymentStrategy', () => {
         klarnaCredit = {
             authorize: jest.fn((params, callback) => callback({ approved: true, authorization_token: 'bar' })),
             init: jest.fn(() => {}),
-            load: jest.fn((options, callback) => callback({ show_form: true })),
+            load: jest.fn((options, data, callback) => callback({ show_form: true })),
         };
 
         paymentMethod = getKlarna();
@@ -117,7 +125,29 @@ describe('KlarnaPaymentStrategy', () => {
         });
 
         it('loads widget', () => {
+            const billingAddress = {
+                street_address: '12345 Testing Way',
+                city: 'Some City',
+                country: 'US',
+                given_name: 'Test',
+                family_name: 'Tester',
+                postal_code: '95555',
+                region: 'California',
+                email: 'test@bigcommerce.com',
+            };
+            const shippingAddress = {
+                street_address: '12345 Testing Way',
+                city: 'Some City',
+                country: 'US',
+                given_name: 'Test',
+                family_name: 'Tester',
+                postal_code: '95555',
+                region: 'California',
+                email: 'test@bigcommerce.com',
+            };
+
             expect(klarnaCredit.init).toHaveBeenCalledWith({ client_token: 'foo' });
+            expect(klarnaCredit.load).toHaveBeenCalledWith({ container: '#container' }, { billing_address: billingAddress, shipping_address: shippingAddress }, expect.any(Function) );
             expect(klarnaCredit.load).toHaveBeenCalledTimes(1);
         });
 
