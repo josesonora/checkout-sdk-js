@@ -13,10 +13,9 @@ import {
 import { OrderActionCreator, OrderActionType, OrderRequestBody, OrderRequestSender } from '../../../order';
 import { OrderFinalizationNotRequiredError } from '../../../order/errors';
 import { getOrderRequestBody } from '../../../order/internal-orders.mock';
-import { getShippingAddress } from '../../../shipping/shipping-addresses.mock';
 import { getKlarna } from '../../../payment/payment-methods.mock';
-import { getBillingAddress } from '../../../billing/billing-addresses.mock';
 import { getCheckoutStoreState } from '../../../checkout/checkouts.mock';
+import { MissingDataError } from '../../../common/error/errors';
 import { RemoteCheckoutActionCreator, RemoteCheckoutActionType, RemoteCheckoutRequestSender } from '../../../remote-checkout';
 import { PaymentMethodCancelledError, PaymentMethodInvalidError } from '../../errors';
 import PaymentMethod from '../../payment-method';
@@ -47,8 +46,6 @@ describe('KlarnaPaymentStrategy', () => {
         store = createCheckoutStore(getCheckoutStoreState());
 
         jest.spyOn(store, 'dispatch').mockReturnValue(Promise.resolve(store.getState()));
-        jest.spyOn(store.getState().shippingAddress, 'getShippingAddress').mockReturnValue(getShippingAddress());
-        jest.spyOn(store.getState().billingAddress, 'getBillingAddress').mockReturnValue(getBillingAddress());
         jest.spyOn(store.getState().paymentMethods, 'getPaymentMethod').mockReturnValue(paymentMethodMock);
 
         orderActionCreator = new OrderActionCreator(
@@ -153,6 +150,23 @@ describe('KlarnaPaymentStrategy', () => {
 
         it('triggers callback with response', () => {
             expect(onLoad).toHaveBeenCalledWith({ show_form: true });
+        });
+
+        it('throws error if required data is not loaded', async () => {
+            try {
+                store = createCheckoutStore();
+                strategy = new KlarnaPaymentStrategy(
+                    store,
+                    orderActionCreator,
+                    paymentMethodActionCreator,
+                    remoteCheckoutActionCreator,
+                    scriptLoader
+                );
+
+                await strategy.initialize({ methodId: paymentMethod.id, klarna: { container: '#container', onLoad } });
+            } catch (error) {
+                expect(error).toBeInstanceOf(MissingDataError);
+            }
         });
     });
 
