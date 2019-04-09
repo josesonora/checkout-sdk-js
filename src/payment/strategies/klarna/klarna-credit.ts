@@ -29,24 +29,17 @@ export interface KlarnaAuthorizationResponse {
 }
 
 export interface KlarnaUpdateSessionParams {
-    billing_address: {
-        street_address: string,
-        city: string,
-        country: string,
-        given_name: string,
-        family_name: string,
-        postal_code: string,
-        region: string,
-        email?: string,
-    };
-    shipping_address?: {
-        street_address: string,
-        city: string,
-        country: string,
-        given_name: string,
-        family_name: string,
-        postal_code: string,
-        region: string,
-        email?: string,
-    };
+    billing_address: KlarnaAddress;
+    shipping_address?: KlarnaAddress;
+}
+
+export interface KlarnaAddress {
+    street_address: string;
+    city: string;
+    country: string;
+    given_name: string;
+    family_name: string;
+    postal_code: string;
+    region: string;
+    email?: string;
 }

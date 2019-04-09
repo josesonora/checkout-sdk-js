@@ -17,7 +17,7 @@ import { getInstrumentsState } from '../../instrument/instrument.mock';
 import { getPaymentMethodsState } from '../../payment-methods.mock';
 import { getPaymentState } from '../../payments.mock';
 
-import { KlarnaUpdateSessionParams } from './klarna-credit';
+import {KlarnaAddress, KlarnaUpdateSessionParams} from './klarna-credit';
 
 export function getCheckoutEUStoreState(): CheckoutStoreState {
     return {
@@ -58,11 +58,11 @@ export function getKlarnaUpdateSessionParams(): KlarnaUpdateSessionParams {
         shipping_address: {
             street_address: '12345 Testing Way',
             city: 'Some City',
-            country: 'DE',
+            country: 'US',
             given_name: 'Test',
             family_name: 'Tester',
             postal_code: '95555',
-            region: 'Berlin',
+            region: 'California',
             email: 'test@bigcommerce.com',
         },
     };

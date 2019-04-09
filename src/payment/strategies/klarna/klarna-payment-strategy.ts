@@ -18,7 +18,7 @@ import PaymentMethodActionCreator from '../../payment-method-action-creator';
 import { PaymentInitializeOptions, PaymentRequestOptions } from '../../payment-request-options';
 import PaymentStrategy from '../payment-strategy';
 
-import KlarnaCredit, { KlarnaLoadResponse, KlarnaUpdateSessionParams } from './klarna-credit';
+import KlarnaCredit, {KlarnaAddress, KlarnaLoadResponse, KlarnaUpdateSessionParams} from './klarna-credit';
 import KlarnaScriptLoader from './klarna-script-loader';
 
 export default class KlarnaPaymentStrategy implements PaymentStrategy {
@@ -132,38 +132,33 @@ export default class KlarnaPaymentStrategy implements PaymentStrategy {
             }));
     }
 
-    private _getUpdateSessionData(billingAddress: BillingAddress, shippingAddress: Address | undefined): KlarnaUpdateSessionParams | {} {
+    private _getUpdateSessionData(billingAddress: BillingAddress, shippingAddress?: Address): KlarnaUpdateSessionParams | {} {
         if (billingAddress.countryCode === 'US') {
             return {};
         }
 
         const data = {} as KlarnaUpdateSessionParams;
 
-        data.billing_address = {
-            street_address: billingAddress.address1,
-            city: billingAddress.city,
-            country: billingAddress.countryCode,
-            given_name: billingAddress.firstName,
-            family_name: billingAddress.lastName,
-            postal_code: billingAddress.postalCode,
-            region: billingAddress.stateOrProvince,
-            email: billingAddress.email,
-        };
+        data.billing_address = this.__mapToKlarnaAddress(billingAddress, billingAddress.email);
 
         if (shippingAddress) {
-            data.shipping_address = {
-                street_address: billingAddress.address1,
-                city: billingAddress.city,
-                country: billingAddress.countryCode,
-                given_name: billingAddress.firstName,
-                family_name: billingAddress.lastName,
-                postal_code: billingAddress.postalCode,
-                region: billingAddress.stateOrProvince,
-                email: billingAddress.email,
-            };
+            data.shipping_address = this.__mapToKlarnaAddress(shippingAddress, billingAddress.email);
         }
 
         return data;
+    }
+
+    private __mapToKlarnaAddress(address: BillingAddress | Address, email?: string): KlarnaAddress {
+        return {
+            street_address: address.address1,
+            city: address.city,
+            country: address.countryCode,
+            given_name: address.firstName,
+            family_name: address.lastName,
+            postal_code: address.postalCode,
+            region: address.stateOrProvince,
+            email,
+        };
     }
 
     private _authorize(): Promise<any> {
