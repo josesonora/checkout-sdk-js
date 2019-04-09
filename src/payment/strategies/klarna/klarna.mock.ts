@@ -1,23 +1,23 @@
 import { BillingAddress } from '../../../billing/';
 import BillingAddressState from '../../../billing/billing-address-state';
+import { getCartState } from '../../../cart/carts.mock';
+import { getCheckoutButtonState } from '../../../checkout-buttons/checkout-buttons.mock';
+import CheckoutStoreState from '../../../checkout/checkout-store-state';
+import { getCheckoutState } from '../../../checkout/checkouts.mock';
+import { getConfigState } from '../../../config/configs.mock';
+import { getCouponsState } from '../../../coupon/coupons.mock';
+import { getGiftCertificatesState } from '../../../coupon/gift-certificates.mock';
+import { getCustomerState } from '../../../customer/customers.mock';
+import { getCustomerStrategyState } from '../../../customer/internal-customers.mock';
+import { getCountriesState } from '../../../geography/countries.mock';
+import { getRemoteCheckoutState } from '../../../remote-checkout/remote-checkout.mock';
+import { getConsignmentsState } from '../../../shipping/consignments.mock';
+import { getShippingCountriesState } from '../../../shipping/shipping-countries.mock';
+import { getInstrumentsState } from '../../instrument/instrument.mock';
+import { getPaymentMethodsState } from '../../payment-methods.mock';
+import { getPaymentState } from '../../payments.mock';
 
 import { KlarnaUpdateSessionParams } from './klarna-credit';
-import {getConsignmentsState} from "../../../shipping/consignments.mock";
-import {getCountriesState} from "../../../geography/countries.mock";
-import {getCheckoutButtonState} from "../../../checkout-buttons/checkout-buttons.mock";
-import {getPaymentState} from "../../payments.mock";
-import {getCartState} from "../../../cart/carts.mock";
-import {getCustomerState} from "../../../customer/customers.mock";
-import {getCheckoutState} from "../../../checkout/checkouts.mock";
-import {getConfigState} from "../../../config/configs.mock";
-import {getCustomerStrategyState} from "../../../customer/internal-customers.mock";
-import {getShippingCountriesState} from "../../../shipping/shipping-countries.mock";
-import {getGiftCertificatesState} from "../../../coupon/gift-certificates.mock";
-import {getInstrumentsState} from "../../instrument/instrument.mock";
-import CheckoutStoreState from "../../../checkout/checkout-store-state";
-import {getCouponsState} from "../../../coupon/coupons.mock";
-import {getPaymentMethodsState} from "../../payment-methods.mock";
-import {getRemoteCheckoutState} from "../../../remote-checkout/remote-checkout.mock";
 
 export function getCheckoutEUStoreState(): CheckoutStoreState {
     return {
