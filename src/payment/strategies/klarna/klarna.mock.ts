@@ -17,7 +17,7 @@ import { getInstrumentsState } from '../../instrument/instrument.mock';
 import { getPaymentMethodsState } from '../../payment-methods.mock';
 import { getPaymentState } from '../../payments.mock';
 
-import {KlarnaAddress, KlarnaUpdateSessionParams} from './klarna-credit';
+import { KlarnaUpdateSessionParams } from './klarna-credit';
 
 export function getCheckoutEUStoreState(): CheckoutStoreState {
     return {
