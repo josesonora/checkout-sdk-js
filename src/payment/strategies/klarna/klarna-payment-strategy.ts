@@ -1,3 +1,6 @@
+import { Address } from '../../../address';
+import BillingAddress from '../../../billing/billing-address';
+
 import { CheckoutStore, InternalCheckoutSelectors } from '../../../checkout';
 import {
     InvalidArgumentError,
@@ -15,7 +18,7 @@ import PaymentMethodActionCreator from '../../payment-method-action-creator';
 import { PaymentInitializeOptions, PaymentRequestOptions } from '../../payment-request-options';
 import PaymentStrategy from '../payment-strategy';
 
-import KlarnaCredit, { KlarnaLoadResponse } from './klarna-credit';
+import KlarnaCredit, { KlarnaLoadResponse, KlarnaUpdateSessionParams } from './klarna-credit';
 import KlarnaScriptLoader from './klarna-script-loader';
 
 export default class KlarnaPaymentStrategy implements PaymentStrategy {
@@ -96,8 +99,8 @@ export default class KlarnaPaymentStrategy implements PaymentStrategy {
         return this._store.dispatch(this._paymentMethodActionCreator.loadPaymentMethod(methodId))
             .then(state => new Promise<KlarnaLoadResponse>((resolve, reject) => {
                 const paymentMethod = state.paymentMethods.getPaymentMethod(methodId);
-                const shippingAddress = state.shippingAddress.getShippingAddress();
                 const billingAddress = state.billingAddress.getBillingAddress();
+                const shippingAddress = state.shippingAddress.getShippingAddress();
 
                 if (!paymentMethod) {
                     throw new MissingDataError(MissingDataErrorType.MissingPaymentMethod);
@@ -107,38 +110,15 @@ export default class KlarnaPaymentStrategy implements PaymentStrategy {
                     throw new MissingDataError(MissingDataErrorType.MissingBillingAddress);
                 }
 
-                if (!shippingAddress) {
-                    throw new MissingDataError(MissingDataErrorType.MissingShippingAddress);
-                }
-
                 if (!this._klarnaCredit || !paymentMethod.clientToken) {
                     throw new NotInitializedError(NotInitializedErrorType.PaymentNotInitialized);
                 }
 
+                const updateSessionData = this._getUpdateSessionData(billingAddress, shippingAddress);
+
                 this._klarnaCredit.init({ client_token: paymentMethod.clientToken });
 
-                this._klarnaCredit.load({ container }, {
-                    billing_address: {
-                        street_address: billingAddress.address1,
-                        city: billingAddress.city,
-                        country: billingAddress.countryCode,
-                        given_name: billingAddress.firstName,
-                        family_name: billingAddress.lastName,
-                        postal_code: billingAddress.postalCode,
-                        region: billingAddress.stateOrProvince,
-                        email: billingAddress.email,
-                    },
-                    shipping_address: {
-                        street_address: shippingAddress.address1,
-                        city: shippingAddress.city,
-                        country: shippingAddress.countryCode,
-                        given_name: shippingAddress.firstName,
-                        family_name: shippingAddress.lastName,
-                        postal_code: shippingAddress.postalCode,
-                        region: shippingAddress.stateOrProvince,
-                        email: billingAddress.email,
-                    },
-                }, response => {
+                this._klarnaCredit.load({ container }, updateSessionData, response => {
                     if (onLoad) {
                         onLoad(response);
                     }
@@ -150,6 +130,40 @@ export default class KlarnaPaymentStrategy implements PaymentStrategy {
                     }
                 });
             }));
+    }
+
+    private _getUpdateSessionData(billingAddress: BillingAddress, shippingAddress: Address | undefined): KlarnaUpdateSessionParams | {} {
+        if (billingAddress.countryCode === 'US') {
+            return {};
+        }
+
+        const data = {} as KlarnaUpdateSessionParams;
+
+        data.billing_address = {
+            street_address: billingAddress.address1,
+            city: billingAddress.city,
+            country: billingAddress.countryCode,
+            given_name: billingAddress.firstName,
+            family_name: billingAddress.lastName,
+            postal_code: billingAddress.postalCode,
+            region: billingAddress.stateOrProvince,
+            email: billingAddress.email,
+        };
+
+        if (shippingAddress) {
+            data.shipping_address = {
+                street_address: billingAddress.address1,
+                city: billingAddress.city,
+                country: billingAddress.countryCode,
+                given_name: billingAddress.firstName,
+                family_name: billingAddress.lastName,
+                postal_code: billingAddress.postalCode,
+                region: billingAddress.stateOrProvince,
+                email: billingAddress.email,
+            };
+        }
+
+        return data;
     }
 
     private _authorize(): Promise<any> {

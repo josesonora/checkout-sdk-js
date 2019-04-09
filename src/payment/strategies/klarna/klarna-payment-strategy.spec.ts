@@ -27,6 +27,7 @@ import { getKlarna } from '../../../payment/payment-methods.mock';
 import KlarnaCredit from './klarna-credit';
 import KlarnaPaymentStrategy from './klarna-payment-strategy';
 import KlarnaScriptLoader from './klarna-script-loader';
+import { getCheckoutEUStoreState, getKlarnaUpdateSessionParams } from './klarna.mock';
 
 describe('KlarnaPaymentStrategy', () => {
     let initializePaymentAction: Observable<Action>;
@@ -41,9 +42,10 @@ describe('KlarnaPaymentStrategy', () => {
     let submitOrderAction: Observable<Action>;
     let store: CheckoutStore;
     let strategy: KlarnaPaymentStrategy;
+    let paymentMethodMock: PaymentMethod;
 
     beforeEach(() => {
-        const paymentMethodMock = { ...getKlarna(), clientToken: 'foo' };
+        paymentMethodMock = { ...getKlarna(), clientToken: 'foo' };
         store = createCheckoutStore(getCheckoutStoreState());
 
         jest.spyOn(store, 'dispatch').mockReturnValue(Promise.resolve(store.getState()));
@@ -123,30 +125,28 @@ describe('KlarnaPaymentStrategy', () => {
         });
 
         it('loads widget', () => {
-            const billingAddress = {
-                street_address: '12345 Testing Way',
-                city: 'Some City',
-                country: 'US',
-                given_name: 'Test',
-                family_name: 'Tester',
-                postal_code: '95555',
-                region: 'California',
-                email: 'test@bigcommerce.com',
-            };
-            const shippingAddress = {
-                street_address: '12345 Testing Way',
-                city: 'Some City',
-                country: 'US',
-                given_name: 'Test',
-                family_name: 'Tester',
-                postal_code: '95555',
-                region: 'California',
-                email: 'test@bigcommerce.com',
-            };
-
             expect(klarnaCredit.init).toHaveBeenCalledWith({ client_token: 'foo' });
-            expect(klarnaCredit.load).toHaveBeenCalledWith({ container: '#container' }, { billing_address: billingAddress, shipping_address: shippingAddress }, expect.any(Function) );
+            expect(klarnaCredit.load)
+                .toHaveBeenCalledWith({ container: '#container' }, {}, expect.any(Function) );
             expect(klarnaCredit.load).toHaveBeenCalledTimes(1);
+        });
+
+        it('loads widget in EU', async () => {
+            store = createCheckoutStore(getCheckoutEUStoreState());
+            strategy = new KlarnaPaymentStrategy(
+                store,
+                orderActionCreator,
+                paymentMethodActionCreator,
+                remoteCheckoutActionCreator,
+                scriptLoader
+            );
+            jest.spyOn(store, 'dispatch').mockReturnValue(Promise.resolve(store.getState()));
+            jest.spyOn(store.getState().paymentMethods, 'getPaymentMethod').mockReturnValue(paymentMethodMock);
+
+            await strategy.initialize({ methodId: paymentMethod.id, klarna: { container: '#container', onLoad } });
+
+            expect(klarnaCredit.load)
+                .toHaveBeenCalledWith({ container: '#container' }, getKlarnaUpdateSessionParams(), expect.any(Function) );
         });
 
         it('triggers callback with response', () => {
