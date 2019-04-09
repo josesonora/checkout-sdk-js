@@ -2,7 +2,6 @@ import StandardError from './standard-error';
 
 export enum MissingDataErrorType {
     MissingBillingAddress,
-    MissingShippingAddress,
     MissingCart,
     MissingCheckout,
     MissingConsignments,
@@ -53,9 +52,6 @@ function getErrorMessage(type: MissingDataErrorType): string {
 
     case MissingDataErrorType.MissingPaymentMethod:
         return 'Unable to proceed because payment method data is unavailable or not properly configured.';
-
-    case MissingDataErrorType.MissingShippingAddress:
-        return 'Unable to proceed because shipping address data is unavailable.';
 
     default:
         return 'Unable to proceed because the required data is unavailable.';
