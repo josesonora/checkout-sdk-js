@@ -2149,6 +2149,7 @@ declare interface CreditCardInstrument {
     ccCvv?: string;
     shouldSaveInstrument?: boolean;
     extraData?: any;
+    threeDSecure?: ThreeDSecure;
 }
 
 declare interface Currency {
@@ -2653,6 +2654,7 @@ declare interface LineItem {
     quantity: number;
     brand: string;
     categoryNames?: string[];
+    categories?: LineItemCategory[][];
     isTaxable: boolean;
     imageUrl: string;
     discounts: Array<{
@@ -2668,6 +2670,10 @@ declare interface LineItem {
     socialMedia?: LineItemSocialData[];
     options?: LineItemOption[];
     addedByPromotion: boolean;
+}
+
+declare interface LineItemCategory {
+    name: string;
 }
 
 declare interface LineItemMap {
@@ -2881,6 +2887,7 @@ declare interface PaymentMethod {
     nonce?: string;
     initializationData?: any;
     returnUrl?: string;
+    ccNumber?: string;
 }
 
 declare interface PaymentMethodConfig {
@@ -3200,6 +3207,17 @@ declare interface Tax {
 declare interface TextInputStyles extends InputStyles {
     placeholder?: InlineElementStyles;
 }
+
+declare type ThreeDSecure = Partial<{
+    version: string;
+    status: string;
+    vendor: string;
+    cavv: string;
+    eci: string;
+    xid: string;
+    token: string;
+    session: string;
+}>;
 
 declare interface TranslationData {
     [key: string]: string | number;
