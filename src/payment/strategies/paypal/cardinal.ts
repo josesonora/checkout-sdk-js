@@ -1,11 +1,13 @@
-export const SignatureValidationErrors = [100004, 1010, 1011, 1020];
+export const CardinalSignatureValidationErrors = [100004, 1010, 1011, 1020];
 
 export interface CardinalSDK {
     configure(params: CardinalConfiguration): void;
     on(params: CardinalEventType, callback: CardinalEventMap[CardinalEventType]): void;
+    off(params: CardinalEventType): void;
     setup(initializationType: CardinalInitializationType, initializationData: CardinalInitializationDataMap[CardinalInitializationType]): void;
     trigger(event: CardinalTriggerEvents, data?: string): Promise<CardinalBinProcessResponse | void>;
     continue(paymentBrand: CardinalPaymentBrand, continueObject: CardinalContinue, order: CardinalPartialOrder): void;
+    start(paymentBrand: CardinalPaymentBrand, order: CardinalPartialOrder, jwt?: string): void;
 }
 
 export interface CardinalWindow extends Window {
@@ -103,6 +105,7 @@ export interface CardinalAccount {
     ExpirationMonth: number;
     ExpirationYear: number;
     NameOnAccount: string;
+    CardCode: number;
 }
 
 export interface CardinalAddress {

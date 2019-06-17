@@ -54,6 +54,9 @@ import { SagePayPaymentStrategy } from './strategies/sage-pay';
 import { SquarePaymentStrategy, SquareScriptLoader } from './strategies/square';
 import { WepayPaymentStrategy, WepayRiskClient } from './strategies/wepay';
 import { ZipPaymentStrategy, ZipScriptLoader } from './strategies/zip';
+import CardinalScriptLoader from "./strategies/paypal/cardinal-script-loader";
+import PaypalProPaymentProcessor from "./strategies/paypal/paypal-pro-payment-processor";
+import PaypalProThreeDSecurePaymentProcessor from "./strategies/paypal/paypal-pro-threedsecure-payment-processor";
 
 export default function createPaymentStrategyRegistry(
     store: CheckoutStore,
@@ -168,8 +171,19 @@ export default function createPaymentStrategyRegistry(
     registry.register(PaymentStrategyType.PAYPAL, () =>
         new PaypalProPaymentStrategy(
             store,
+            paymentMethodActionCreator,
             orderActionCreator,
-            paymentActionCreator
+            new PaypalProThreeDSecurePaymentProcessor(
+                store,
+                orderActionCreator,
+                paymentActionCreator,
+                new CardinalScriptLoader(scriptLoader)
+            ),
+            new PaypalProPaymentProcessor(
+                store,
+                orderActionCreator,
+                paymentActionCreator
+            )
         )
     );
 

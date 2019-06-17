@@ -20,9 +20,9 @@ export default class PaypalProPaymentStrategy implements PaymentStrategy {
     constructor(
         private _store: CheckoutStore,
         private _paymentMethodActionCreator: PaymentMethodActionCreator,
+        private _orderActionCreator: OrderActionCreator,
         private _threeDSecurePaymentProcessor: PaypalProThreeDSecurePaymentProcessor,
-        private _paymentProcessor: PaypalProPaymentProcessor,
-        private _orderActionCreator: OrderActionCreator
+        private _paymentProcessor: PaypalProPaymentProcessor
     ) {}
 
     initialize(options: PaymentInitializeOptions): Promise<InternalCheckoutSelectors> {
@@ -42,6 +42,9 @@ export default class PaypalProPaymentStrategy implements PaymentStrategy {
     }
 
     execute(payload: OrderRequestBody, options?: PaymentRequestOptions): Promise<InternalCheckoutSelectors> {
+        const { payment, ...order } = payload;
+        const paymentData = payment && payment.paymentData as CreditCardInstrument;
+
         if (this._isPaymentAcknowledged()) {
             return this._store.dispatch(
                 this._orderActionCreator.submitOrder({
@@ -50,9 +53,6 @@ export default class PaypalProPaymentStrategy implements PaymentStrategy {
                 }, options)
             );
         }
-
-        const { payment, ...order } = payload;
-        const paymentData = payment && payment.paymentData as CreditCardInstrument;
 
         if (!this._processor) {
             throw new NotInitializedError(NotInitializedErrorType.PaymentNotInitialized);

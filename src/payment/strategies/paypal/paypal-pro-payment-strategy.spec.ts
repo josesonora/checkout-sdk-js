@@ -17,7 +17,7 @@ import PaymentRequestSender from '../../payment-request-sender';
 import PaypalProPaymentStrategy from './paypal-pro-payment-strategy';
 
 describe('PaypalProPaymentStrategy', () => {
-    let orderActionCreator: OrderActionCreator;
+    /*let orderActionCreator: OrderActionCreator;
     let paymentActionCreator: PaymentActionCreator;
     let state: CheckoutStoreState;
     let store: CheckoutStore;
@@ -120,5 +120,5 @@ describe('PaypalProPaymentStrategy', () => {
             expect(paymentActionCreator.submitPayment).not.toHaveBeenCalled();
             expect(store.dispatch).not.toHaveBeenCalledWith(submitPaymentAction);
         });
-    });
+    });*/
 });
