@@ -8,7 +8,7 @@ import {
 } from '../../../common/error/errors';
 import { OrderActionCreator, OrderPaymentRequestBody, OrderRequestBody } from '../../../order';
 import { OrderFinalizationNotRequiredError } from '../../../order/errors';
-import Payment, { CreditCardInstrument } from '../../payment';
+import { CreditCardInstrument } from '../../payment';
 import PaymentActionCreator from '../../payment-action-creator';
 import PaymentMethod from '../../payment-method';
 import PaymentMethodActionCreator from '../../payment-method-action-creator';
@@ -17,15 +17,15 @@ import PaymentStrategy from '../payment-strategy';
 
 import { CardinalClient, CardinalOrderData } from './index';
 
-export default class CyberSourcePaymentStrategy implements PaymentStrategy {
-    private _paymentMethod?: PaymentMethod;
+export default class CreditCardCardinalPaymentStrategy implements PaymentStrategy {
+    protected _paymentMethod?: PaymentMethod;
 
     constructor(
-        private _store: CheckoutStore,
-        private _paymentMethodActionCreator: PaymentMethodActionCreator,
-        private _orderActionCreator: OrderActionCreator,
-        private _paymentActionCreator: PaymentActionCreator,
-        private _cardinalClient: CardinalClient
+        protected _store: CheckoutStore,
+        protected _paymentMethodActionCreator: PaymentMethodActionCreator,
+        protected _orderActionCreator: OrderActionCreator,
+        protected _paymentActionCreator: PaymentActionCreator,
+        protected _cardinalClient: CardinalClient
     ) {}
 
     initialize(options: PaymentInitializeOptions): Promise<InternalCheckoutSelectors> {

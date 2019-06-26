@@ -66,7 +66,7 @@ export default class CardinalClient {
                 client.setup(CardinalInitializationType.Init, {
                     jwt: clientToken,
                 });
-        }));
+            }));
     }
 
     runBindProcess(ccNumber: string): Promise<void> {
@@ -113,7 +113,7 @@ export default class CardinalClient {
 
                     client.continue(CardinalPaymentBrand.CCA, continueObject, partialOrder);
                 });
-        });
+            });
     }
 
     private _mapToPartialOrder(orderData: CardinalOrderData, transactionId: string): CardinalPartialOrder {

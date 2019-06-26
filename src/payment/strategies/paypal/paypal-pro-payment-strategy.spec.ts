@@ -1,35 +1,78 @@
-
 import { createClient as createPaymentClient } from '@bigcommerce/bigpay-client';
-import { createAction } from '@bigcommerce/data-store';
+import { createAction, Action } from '@bigcommerce/data-store';
+import createErrorAction from '@bigcommerce/data-store/lib/create-error-action';
 import { createRequestSender } from '@bigcommerce/request-sender';
 import { createScriptLoader } from '@bigcommerce/script-loader';
-import { omit } from 'lodash';
+import { merge } from 'lodash';
 import { of, Observable } from 'rxjs';
 
-import { createCheckoutStore, CheckoutRequestSender, CheckoutStore, CheckoutStoreState, CheckoutValidator } from '../../../checkout';
-import { getCheckoutStoreState, getCheckoutWithPayments } from '../../../checkout/checkouts.mock';
-import { OrderActionCreator, OrderActionType, OrderRequestSender, SubmitOrderAction } from '../../../order';
-import { OrderFinalizationNotRequiredError } from '../../../order/errors';
+import {
+    createCheckoutStore,
+    CheckoutRequestSender,
+    CheckoutStore,
+    CheckoutValidator,
+} from '../../../checkout';
+import {
+    getCheckoutStoreState, getCheckoutStoreStateWithOrder,
+    getCheckoutWithPayments
+} from '../../../checkout/checkouts.mock';
+import RequestError from '../../../common/error/errors/request-error';
+import { getResponse } from '../../../common/http-request/responses.mock';
+import {
+    OrderActionCreator,
+    OrderActionType,
+    OrderRequestBody,
+    OrderRequestSender,
+} from '../../../order';
 import { getOrderRequestBody } from '../../../order/internal-orders.mock';
 import { createSpamProtection, SpamProtectionActionCreator } from '../../../order/spam-protection';
+import {
+    RemoteCheckoutActionCreator,
+    RemoteCheckoutActionType,
+    RemoteCheckoutRequestSender
+} from '../../../remote-checkout';
+import { PaymentRequestSender } from '../../index';
 import PaymentActionCreator from '../../payment-action-creator';
 import { PaymentActionType, SubmitPaymentAction } from '../../payment-actions';
-import PaymentRequestSender from '../../payment-request-sender';
+import PaymentMethod from '../../payment-method';
+import PaymentMethodActionCreator from '../../payment-method-action-creator';
+import { PaymentMethodActionType } from '../../payment-method-actions';
+import PaymentMethodRequestSender from '../../payment-method-request-sender';
+import { getPaypal } from '../../payment-methods.mock';
+import { getErrorPaymentResponseBody } from '../../payments.mock';
+import {
+    CardinalClient,
+    CardinalScriptLoader
+} from '../credit-card/index';
 
 import PaypalProPaymentStrategy from './paypal-pro-payment-strategy';
 
 describe('PaypalProPaymentStrategy', () => {
+    let initializePaymentAction: Observable<Action>;
+    let loadPaymentMethodAction: Observable<Action>;
+    let cardinalClient: CardinalClient;
+    let payload: OrderRequestBody;
     let orderActionCreator: OrderActionCreator;
+    let paymentMethodActionCreator: PaymentMethodActionCreator;
     let paymentActionCreator: PaymentActionCreator;
-    let state: CheckoutStoreState;
+    let remoteCheckoutActionCreator: RemoteCheckoutActionCreator;
+    let scriptLoader: CardinalScriptLoader;
+    let submitOrderAction: Observable<Action>;
+    let submitPaymentAction: Observable<SubmitPaymentAction>;
     let store: CheckoutStore;
     let strategy: PaypalProPaymentStrategy;
-    let submitOrderAction: Observable<SubmitOrderAction>;
-    let submitPaymentAction: Observable<SubmitPaymentAction>;
+    let paymentMethodMock: PaymentMethod;
 
     beforeEach(() => {
-        submitOrderAction = of(createAction(OrderActionType.SubmitOrderRequested));
-        submitPaymentAction = of(createAction(PaymentActionType.SubmitPaymentRequested));
+        paymentMethodMock = { ...getPaypal(), clientToken: 'foo' };
+        store = createCheckoutStore(getCheckoutStoreStateWithOrder());
+        paymentMethodActionCreator = new PaymentMethodActionCreator(new PaymentMethodRequestSender(createRequestSender()));
+        scriptLoader = new CardinalScriptLoader(createScriptLoader());
+        cardinalClient = new CardinalClient(scriptLoader);
+
+        remoteCheckoutActionCreator = new RemoteCheckoutActionCreator(
+            new RemoteCheckoutRequestSender(createRequestSender())
+        );
 
         orderActionCreator = new OrderActionCreator(
             new OrderRequestSender(createRequestSender()),
@@ -42,86 +85,140 @@ describe('PaypalProPaymentStrategy', () => {
             orderActionCreator
         );
 
-        state = getCheckoutStoreState();
-        store = createCheckoutStore(state);
+        strategy = new PaypalProPaymentStrategy(
+            store,
+            paymentMethodActionCreator,
+            orderActionCreator,
+            paymentActionCreator,
+            cardinalClient
+        );
 
-        strategy = new PaypalProPaymentStrategy(store, orderActionCreator, paymentActionCreator);
+        payload = merge({}, getOrderRequestBody(), {
+            payment: {
+                methodId: paymentMethodMock.id,
+                gatewayId: paymentMethodMock.gateway,
+            },
+        });
 
-        jest.spyOn(store, 'dispatch');
+        loadPaymentMethodAction = of(createAction(PaymentMethodActionType.LoadPaymentMethodSucceeded, paymentMethodMock, { methodId: paymentMethodMock.id }));
+        initializePaymentAction = of(createAction(RemoteCheckoutActionType.InitializeRemotePaymentRequested));
+        submitOrderAction = of(createAction(OrderActionType.SubmitOrderRequested));
+        submitPaymentAction = of(createAction(PaymentActionType.SubmitPaymentRequested));
+
+        jest.spyOn(paymentMethodActionCreator, 'loadPaymentMethod')
+            .mockReturnValue(loadPaymentMethodAction);
+
+        jest.spyOn(remoteCheckoutActionCreator, 'initializePayment')
+            .mockReturnValue(initializePaymentAction);
 
         jest.spyOn(orderActionCreator, 'submitOrder')
             .mockReturnValue(submitOrderAction);
 
         jest.spyOn(paymentActionCreator, 'submitPayment')
             .mockReturnValue(submitPaymentAction);
+
+        jest.spyOn(cardinalClient, 'initialize').mockReturnValue(Promise.resolve());
     });
 
-    it('submits order without payment data', async () => {
-        const payload = getOrderRequestBody();
+    describe('#execute', () => {
+        it('completes the purchase successfully when 3DS is disabled', async () => {
+            const paymentMethod = paymentMethodMock;
+            paymentMethod.config.is3dsEnabled = false;
 
-        await strategy.execute(payload);
+            jest.spyOn(store.getState().paymentMethods, 'getPaymentMethod').mockReturnValue(paymentMethod);
 
-        expect(orderActionCreator.submitOrder).toHaveBeenCalledWith(omit(payload, 'payment'), undefined);
-        expect(store.dispatch).toHaveBeenCalledWith(submitOrderAction);
-    });
+            strategy = new PaypalProPaymentStrategy(
+                store,
+                paymentMethodActionCreator,
+                orderActionCreator,
+                paymentActionCreator,
+                cardinalClient
+            );
 
-    it('submits payment separately', async () => {
-        const payload = getOrderRequestBody();
+            await strategy.initialize({ methodId: paymentMethod.id });
 
-        await strategy.execute(payload);
+            await strategy.execute(payload);
 
-        expect(paymentActionCreator.submitPayment).toHaveBeenCalledWith(payload.payment);
-        expect(store.dispatch).toHaveBeenCalledWith(submitPaymentAction);
-    });
+            const { payment, ...order } = payload;
 
-    it('returns checkout state', async () => {
-        const output = await strategy.execute(getOrderRequestBody());
+            expect(orderActionCreator.submitOrder).toHaveBeenCalledWith(order, undefined);
+            expect(paymentActionCreator.submitPayment).toHaveBeenCalledWith(payment);
+        });
 
-        expect(output).toEqual(store.getState());
-    });
-
-    it('throws error to inform that order finalization is not required', async () => {
-        try {
-            await strategy.finalize();
-        } catch (error) {
-            expect(error).toBeInstanceOf(OrderFinalizationNotRequiredError);
-        }
-    });
-
-    describe('if payment is acknowledged', () => {
-        beforeEach(() => {
-            store = createCheckoutStore({
-                ...getCheckoutStoreState(),
-                checkout: {
-                    ...state.checkout,
-                    data: getCheckoutWithPayments(),
+        it('completes the purchase successfully when 3DS is enabled', async () => {
+            const requestError: RequestError = new RequestError(getResponse({
+                ...getErrorPaymentResponseBody(),
+                errors: [
+                    { code: 'enrolled_card' },
+                ],
+                three_ds_result: {
+                    acs_url: 'https://acs/url',
+                    callback_url: '',
+                    payer_auth_request: '',
+                    merchant_data: 'merchant_data',
                 },
+                status: 'error',
+            }));
+
+            jest.spyOn(cardinalClient, 'configure').mockReturnValue(Promise.resolve());
+            jest.spyOn(cardinalClient, 'runBindProcess').mockReturnValue(Promise.resolve());
+            jest.spyOn(paymentActionCreator, 'submitPayment')
+                .mockReturnValueOnce(of(createErrorAction(PaymentActionType.SubmitPaymentFailed, requestError)));
+            jest.spyOn(cardinalClient, 'getThreeDSecureData').mockReturnValue(Promise.resolve('token'));
+
+            await strategy.initialize({ methodId: paymentMethodMock.id });
+            const promise = await strategy.execute(payload);
+
+            expect(cardinalClient.getThreeDSecureData).toHaveBeenCalled();
+            expect(promise).toBe(store.getState());
+        });
+
+        describe('if payment is acknowledged', () => {
+            beforeEach(async () => {
+                const storeState = getCheckoutStoreState();
+
+                store = createCheckoutStore({
+                    ...storeState,
+                    checkout: {
+                        ...storeState.checkout,
+                        data: getCheckoutWithPayments(),
+                    },
+                });
+
+                strategy = new PaypalProPaymentStrategy(
+                    store,
+                    paymentMethodActionCreator,
+                    orderActionCreator,
+                    paymentActionCreator,
+                    cardinalClient
+                );
+
+                const paymentMethod = paymentMethodMock;
+                paymentMethod.config.is3dsEnabled = false;
+
+                jest.spyOn(store.getState().paymentMethods, 'getPaymentMethod').mockReturnValue(paymentMethod);
+
+                await strategy.initialize({ methodId: paymentMethodMock.id });
             });
 
-            strategy = new PaypalProPaymentStrategy(store, orderActionCreator, paymentActionCreator);
+            it('submits order with payment method name', async () => {
+                const payload = getOrderRequestBody();
 
-            jest.spyOn(store, 'dispatch');
-        });
+                await strategy.execute(payload);
 
-        it('submits order with payment method name', async () => {
-            const payload = getOrderRequestBody();
+                expect(orderActionCreator.submitOrder).toHaveBeenCalledWith({
+                    ...payload,
+                    payment: { methodId: payload.payment && payload.payment.methodId },
+                }, undefined);
+            });
 
-            await strategy.execute(payload);
+            it('does not submit payment separately', async () => {
+                const payload = getOrderRequestBody();
 
-            expect(orderActionCreator.submitOrder).toHaveBeenCalledWith({
-                ...payload,
-                payment: { methodId: payload.payment && payload.payment.methodId },
-            }, undefined);
-            expect(store.dispatch).toHaveBeenCalledWith(submitOrderAction);
-        });
+                await strategy.execute(payload);
 
-        it('does not submit payment separately', async () => {
-            const payload = getOrderRequestBody();
-
-            await strategy.execute(payload);
-
-            expect(paymentActionCreator.submitPayment).not.toHaveBeenCalled();
-            expect(store.dispatch).not.toHaveBeenCalledWith(submitPaymentAction);
+                expect(paymentActionCreator.submitPayment).not.toHaveBeenCalled();
+            });
         });
     });
 });

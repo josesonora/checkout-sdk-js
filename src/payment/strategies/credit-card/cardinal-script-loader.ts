@@ -2,7 +2,7 @@ import { ScriptLoader } from '@bigcommerce/script-loader';
 
 import { StandardError } from '../../../common/error/errors';
 
-import { CardinalSDK, CardinalWindow } from './cardinal';
+import { CardinalSDK, CardinalWindow } from './index';
 
 const SDK_TEST_URL = 'https://songbirdstag.cardinalcommerce.com/edge/v1/songbird.js';
 const SDK_PROD_URL = 'https://songbird.cardinalcommerce.com/edge/v1/songbird.js';

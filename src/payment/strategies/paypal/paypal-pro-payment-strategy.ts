@@ -1,19 +1,11 @@
-import { CheckoutStore, InternalCheckoutSelectors } from '../../../checkout';
-import { OrderActionCreator, OrderRequestBody } from '../../../order';
-import { OrderFinalizationNotRequiredError } from '../../../order/errors';
-import { PaymentArgumentInvalidError } from '../../errors';
-import PaymentActionCreator from '../../payment-action-creator';
-import { PaymentInitializeOptions, PaymentRequestOptions } from '../../payment-request-options';
+import { InternalCheckoutSelectors } from '../../../checkout';
+import { OrderRequestBody } from '../../../order';
+import { PaymentRequestOptions } from '../../payment-request-options';
 import * as paymentStatusTypes from '../../payment-status-types';
-import PaymentStrategy from '../payment-strategy';
 
-export default class PaypalProPaymentStrategy implements PaymentStrategy {
-    constructor(
-        private _store: CheckoutStore,
-        private _orderActionCreator: OrderActionCreator,
-        private _paymentActionCreator: PaymentActionCreator
-    ) {}
+import { CreditCardCardinalPaymentStrategy } from '../credit-card';
 
+export default class PaypalProPaymentStrategy extends CreditCardCardinalPaymentStrategy {
     execute(payload: OrderRequestBody, options?: PaymentRequestOptions): Promise<InternalCheckoutSelectors> {
         if (this._isPaymentAcknowledged()) {
             return this._store.dispatch(
@@ -24,29 +16,7 @@ export default class PaypalProPaymentStrategy implements PaymentStrategy {
             );
         }
 
-        const { payment, ...order } = payload;
-        const paymentData = payment && payment.paymentData;
-
-        if (!payment || !paymentData) {
-            throw new PaymentArgumentInvalidError(['payment.paymentData']);
-        }
-
-        return this._store.dispatch(this._orderActionCreator.submitOrder(order, options))
-            .then(() =>
-                this._store.dispatch(this._paymentActionCreator.submitPayment({ ...payment, paymentData }))
-            );
-    }
-
-    finalize(options?: PaymentRequestOptions): Promise<InternalCheckoutSelectors> {
-        return Promise.reject(new OrderFinalizationNotRequiredError());
-    }
-
-    initialize(options?: PaymentInitializeOptions): Promise<InternalCheckoutSelectors> {
-        return Promise.resolve(this._store.getState());
-    }
-
-    deinitialize(options?: PaymentRequestOptions): Promise<InternalCheckoutSelectors> {
-        return Promise.resolve(this._store.getState());
+        return super.execute(payload, options);
     }
 
     private _isPaymentAcknowledged(): boolean {

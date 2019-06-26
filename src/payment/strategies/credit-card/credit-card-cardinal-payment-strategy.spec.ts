@@ -44,10 +44,10 @@ import { getErrorPaymentResponseBody } from '../../payments.mock';
 import {
     CardinalClient,
     CardinalScriptLoader,
-    CyberSourcePaymentStrategy
+    CreditCardCardinalPaymentStrategy
 } from './index';
 
-describe('CyberSourcePaymentStrategy', () => {
+describe('CreditCardCardinalPaymentStrategy', () => {
     let initializePaymentAction: Observable<Action>;
     let loadPaymentMethodAction: Observable<Action>;
     let cardinalClient: CardinalClient;
@@ -60,7 +60,7 @@ describe('CyberSourcePaymentStrategy', () => {
     let submitOrderAction: Observable<Action>;
     let submitPaymentAction: Observable<SubmitPaymentAction>;
     let store: CheckoutStore;
-    let strategy: CyberSourcePaymentStrategy;
+    let strategy: CreditCardCardinalPaymentStrategy;
     let paymentMethodMock: PaymentMethod;
     let requestError: RequestError;
 
@@ -88,7 +88,7 @@ describe('CyberSourcePaymentStrategy', () => {
             orderActionCreator
         );
 
-        strategy = new CyberSourcePaymentStrategy(
+        strategy = new CreditCardCardinalPaymentStrategy(
             store,
             paymentMethodActionCreator,
             orderActionCreator,
@@ -170,7 +170,7 @@ describe('CyberSourcePaymentStrategy', () => {
 
                 jest.spyOn(store.getState().paymentMethods, 'getPaymentMethod').mockReturnValue(paymentMethod);
 
-                strategy = new CyberSourcePaymentStrategy(
+                strategy = new CreditCardCardinalPaymentStrategy(
                     store,
                     paymentMethodActionCreator,
                     orderActionCreator,
@@ -281,7 +281,7 @@ describe('CyberSourcePaymentStrategy', () => {
 
                 jest.spyOn(store.getState().paymentMethods, 'getPaymentMethod').mockReturnValue(paymentMethod);
 
-                strategy = new CyberSourcePaymentStrategy(
+                strategy = new CreditCardCardinalPaymentStrategy(
                     store,
                     paymentMethodActionCreator,
                     orderActionCreator,
@@ -304,7 +304,7 @@ describe('CyberSourcePaymentStrategy', () => {
 
                 store = createCheckoutStore(getCheckoutStoreState());
 
-                strategy = new CyberSourcePaymentStrategy(
+                strategy = new CreditCardCardinalPaymentStrategy(
                     store,
                     paymentMethodActionCreator,
                     orderActionCreator,
@@ -330,7 +330,7 @@ describe('CyberSourcePaymentStrategy', () => {
                     billingAddress: undefined,
                 });
 
-                strategy = new CyberSourcePaymentStrategy(
+                strategy = new CreditCardCardinalPaymentStrategy(
                     store,
                     paymentMethodActionCreator,
                     orderActionCreator,
@@ -356,7 +356,7 @@ describe('CyberSourcePaymentStrategy', () => {
                     checkout: undefined,
                 });
 
-                strategy = new CyberSourcePaymentStrategy(
+                strategy = new CreditCardCardinalPaymentStrategy(
                     store,
                     paymentMethodActionCreator,
                     orderActionCreator,

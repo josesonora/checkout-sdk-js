@@ -32,12 +32,12 @@ import {
 } from './strategies/braintree';
 import { ChasePayPaymentStrategy, ChasePayScriptLoader } from './strategies/chasepay';
 import { ConvergePaymentStrategy } from './strategies/converge';
-import { CreditCardPaymentStrategy } from './strategies/credit-card';
 import {
     CardinalClient,
     CardinalScriptLoader,
-    CyberSourcePaymentStrategy
-} from './strategies/cybersource';
+    CreditCardCardinalPaymentStrategy,
+    CreditCardPaymentStrategy
+} from './strategies/credit-card';
 import {
     createGooglePayPaymentProcessor,
     GooglePayBraintreeInitializer,
@@ -120,7 +120,7 @@ export default function createPaymentStrategyRegistry(
     );
 
     registry.register(PaymentStrategyType.CYBERSOURCE, () =>
-        new CyberSourcePaymentStrategy(
+        new CreditCardCardinalPaymentStrategy(
             store,
             paymentMethodActionCreator,
             orderActionCreator,
@@ -164,8 +164,10 @@ export default function createPaymentStrategyRegistry(
     registry.register(PaymentStrategyType.PAYPAL, () =>
         new PaypalProPaymentStrategy(
             store,
+            paymentMethodActionCreator,
             orderActionCreator,
-            paymentActionCreator
+            paymentActionCreator,
+            new CardinalClient(new CardinalScriptLoader(scriptLoader))
         )
     );
 
