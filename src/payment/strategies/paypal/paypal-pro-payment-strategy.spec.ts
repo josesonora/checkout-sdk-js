@@ -6,31 +6,15 @@ import { createScriptLoader } from '@bigcommerce/script-loader';
 import { merge } from 'lodash';
 import { of, Observable } from 'rxjs';
 
-import {
-    createCheckoutStore,
-    CheckoutRequestSender,
-    CheckoutStore,
-    CheckoutValidator,
-} from '../../../checkout';
-import {
-    getCheckoutStoreState, getCheckoutStoreStateWithOrder,
-    getCheckoutWithPayments
-} from '../../../checkout/checkouts.mock';
+import { createCheckoutStore, CheckoutRequestSender, CheckoutStore, CheckoutValidator } from '../../../checkout';
+import CheckoutStoreState from '../../../checkout/checkout-store-state';
+import { getCheckoutStoreState, getCheckoutStoreStateWithOrder, getCheckoutWithPayments } from '../../../checkout/checkouts.mock';
 import RequestError from '../../../common/error/errors/request-error';
 import { getResponse } from '../../../common/http-request/responses.mock';
-import {
-    OrderActionCreator,
-    OrderActionType,
-    OrderRequestBody,
-    OrderRequestSender,
-} from '../../../order';
+import { OrderActionCreator, OrderActionType, OrderRequestBody, OrderRequestSender } from '../../../order';
 import { getOrderRequestBody } from '../../../order/internal-orders.mock';
 import { createSpamProtection, SpamProtectionActionCreator } from '../../../order/spam-protection';
-import {
-    RemoteCheckoutActionCreator,
-    RemoteCheckoutActionType,
-    RemoteCheckoutRequestSender
-} from '../../../remote-checkout';
+import { RemoteCheckoutActionCreator, RemoteCheckoutActionType, RemoteCheckoutRequestSender } from '../../../remote-checkout';
 import { PaymentRequestSender } from '../../index';
 import PaymentActionCreator from '../../payment-action-creator';
 import { PaymentActionType, SubmitPaymentAction } from '../../payment-actions';
@@ -40,10 +24,8 @@ import { PaymentMethodActionType } from '../../payment-method-actions';
 import PaymentMethodRequestSender from '../../payment-method-request-sender';
 import { getPaypal } from '../../payment-methods.mock';
 import { getErrorPaymentResponseBody } from '../../payments.mock';
-import {
-    CardinalClient,
-    CardinalScriptLoader
-} from '../credit-card/index';
+import CreditCardCardinalPaymentStrategy from '../credit-card/credit-card-cardinal-payment-strategy';
+import { CardinalClient, CardinalScriptLoader } from '../credit-card/index';
 
 import PaypalProPaymentStrategy from './paypal-pro-payment-strategy';
 
@@ -59,13 +41,14 @@ describe('PaypalProPaymentStrategy', () => {
     let scriptLoader: CardinalScriptLoader;
     let submitOrderAction: Observable<Action>;
     let submitPaymentAction: Observable<SubmitPaymentAction>;
+    let state: CheckoutStoreState;
     let store: CheckoutStore;
     let strategy: PaypalProPaymentStrategy;
     let paymentMethodMock: PaymentMethod;
 
     beforeEach(() => {
         paymentMethodMock = { ...getPaypal(), clientToken: 'foo' };
-        store = createCheckoutStore(getCheckoutStoreStateWithOrder());
+
         paymentMethodActionCreator = new PaymentMethodActionCreator(new PaymentMethodRequestSender(createRequestSender()));
         scriptLoader = new CardinalScriptLoader(createScriptLoader());
         cardinalClient = new CardinalClient(scriptLoader);
@@ -83,14 +66,6 @@ describe('PaypalProPaymentStrategy', () => {
         paymentActionCreator = new PaymentActionCreator(
             new PaymentRequestSender(createPaymentClient()),
             orderActionCreator
-        );
-
-        strategy = new PaypalProPaymentStrategy(
-            store,
-            paymentMethodActionCreator,
-            orderActionCreator,
-            paymentActionCreator,
-            cardinalClient
         );
 
         payload = merge({}, getOrderRequestBody(), {
@@ -121,84 +96,92 @@ describe('PaypalProPaymentStrategy', () => {
     });
 
     describe('#execute', () => {
-        it('completes the purchase successfully when 3DS is disabled', async () => {
-            const paymentMethod = paymentMethodMock;
-            paymentMethod.config.is3dsEnabled = false;
+        describe('with 3ds', () => {
+            beforeEach(() => {
+                store = createCheckoutStore(getCheckoutStoreStateWithOrder());
+                strategy = new PaypalProPaymentStrategy(
+                    store,
+                    orderActionCreator,
+                    new CreditCardCardinalPaymentStrategy(
+                        store,
+                        paymentMethodActionCreator,
+                        orderActionCreator,
+                        paymentActionCreator,
+                        cardinalClient
+                    )
+                );
 
-            jest.spyOn(store.getState().paymentMethods, 'getPaymentMethod').mockReturnValue(paymentMethod);
+                jest.spyOn(store, 'dispatch');
+            });
 
-            strategy = new PaypalProPaymentStrategy(
-                store,
-                paymentMethodActionCreator,
-                orderActionCreator,
-                paymentActionCreator,
-                cardinalClient
-            );
+            it('completes the purchase successfully when 3DS is disabled', async () => {
+                const paymentMethod = paymentMethodMock;
+                paymentMethod.config.is3dsEnabled = false;
 
-            await strategy.initialize({ methodId: paymentMethod.id });
+                jest.spyOn(store.getState().paymentMethods, 'getPaymentMethod').mockReturnValue(paymentMethod);
 
-            await strategy.execute(payload);
+                await strategy.initialize({ methodId: paymentMethod.id });
+                await strategy.execute(payload);
 
-            const { payment, ...order } = payload;
+                const { payment, ...order } = payload;
 
-            expect(orderActionCreator.submitOrder).toHaveBeenCalledWith(order, undefined);
-            expect(paymentActionCreator.submitPayment).toHaveBeenCalledWith(payment);
-        });
+                expect(orderActionCreator.submitOrder).toHaveBeenCalledWith(order, undefined);
+                expect(paymentActionCreator.submitPayment).toHaveBeenCalledWith(payment);
+            });
 
-        it('completes the purchase successfully when 3DS is enabled', async () => {
-            const requestError: RequestError = new RequestError(getResponse({
-                ...getErrorPaymentResponseBody(),
-                errors: [
-                    { code: 'enrolled_card' },
-                ],
-                three_ds_result: {
-                    acs_url: 'https://acs/url',
-                    callback_url: '',
-                    payer_auth_request: '',
-                    merchant_data: 'merchant_data',
-                },
-                status: 'error',
-            }));
+            it('completes the purchase successfully when 3DS is enabled', async () => {
+                const requestError: RequestError = new RequestError(getResponse({
+                    ...getErrorPaymentResponseBody(),
+                    errors: [
+                        { code: 'enrolled_card' },
+                    ],
+                    three_ds_result: {
+                        acs_url: 'https://acs/url',
+                        callback_url: '',
+                        payer_auth_request: '',
+                        merchant_data: 'merchant_data',
+                    },
+                    status: 'error',
+                }));
 
-            jest.spyOn(cardinalClient, 'configure').mockReturnValue(Promise.resolve());
-            jest.spyOn(cardinalClient, 'runBindProcess').mockReturnValue(Promise.resolve());
-            jest.spyOn(paymentActionCreator, 'submitPayment')
-                .mockReturnValueOnce(of(createErrorAction(PaymentActionType.SubmitPaymentFailed, requestError)));
-            jest.spyOn(cardinalClient, 'getThreeDSecureData').mockReturnValue(Promise.resolve('token'));
+                jest.spyOn(cardinalClient, 'configure').mockReturnValue(Promise.resolve());
+                jest.spyOn(cardinalClient, 'runBindProcess').mockReturnValue(Promise.resolve());
+                jest.spyOn(paymentActionCreator, 'submitPayment')
+                    .mockReturnValueOnce(of(createErrorAction(PaymentActionType.SubmitPaymentFailed, requestError)));
+                jest.spyOn(cardinalClient, 'getThreeDSecureData').mockReturnValue(Promise.resolve('token'));
 
-            await strategy.initialize({ methodId: paymentMethodMock.id });
-            const promise = await strategy.execute(payload);
+                await strategy.initialize({ methodId: paymentMethodMock.id });
+                const promise = await strategy.execute(payload);
 
-            expect(cardinalClient.getThreeDSecureData).toHaveBeenCalled();
-            expect(promise).toBe(store.getState());
+                expect(cardinalClient.getThreeDSecureData).toHaveBeenCalled();
+                expect(promise).toBe(store.getState());
+            });
         });
 
         describe('if payment is acknowledged', () => {
-            beforeEach(async () => {
-                const storeState = getCheckoutStoreState();
-
+            beforeEach(() => {
+                state = getCheckoutStoreState();
                 store = createCheckoutStore({
-                    ...storeState,
+                    ...state,
                     checkout: {
-                        ...storeState.checkout,
+                        ...state.checkout,
                         data: getCheckoutWithPayments(),
                     },
                 });
 
                 strategy = new PaypalProPaymentStrategy(
                     store,
-                    paymentMethodActionCreator,
                     orderActionCreator,
-                    paymentActionCreator,
-                    cardinalClient
+                    new CreditCardCardinalPaymentStrategy(
+                        store,
+                        paymentMethodActionCreator,
+                        orderActionCreator,
+                        paymentActionCreator,
+                        cardinalClient
+                    )
                 );
 
-                const paymentMethod = paymentMethodMock;
-                paymentMethod.config.is3dsEnabled = false;
-
-                jest.spyOn(store.getState().paymentMethods, 'getPaymentMethod').mockReturnValue(paymentMethod);
-
-                await strategy.initialize({ methodId: paymentMethodMock.id });
+                jest.spyOn(store, 'dispatch');
             });
 
             it('submits order with payment method name', async () => {
@@ -210,6 +193,7 @@ describe('PaypalProPaymentStrategy', () => {
                     ...payload,
                     payment: { methodId: payload.payment && payload.payment.methodId },
                 }, undefined);
+                expect(store.dispatch).toHaveBeenCalledWith(submitOrderAction);
             });
 
             it('does not submit payment separately', async () => {
@@ -218,6 +202,7 @@ describe('PaypalProPaymentStrategy', () => {
                 await strategy.execute(payload);
 
                 expect(paymentActionCreator.submitPayment).not.toHaveBeenCalled();
+                expect(store.dispatch).not.toHaveBeenCalledWith(submitPaymentAction);
             });
         });
     });

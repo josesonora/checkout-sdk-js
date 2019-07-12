@@ -39,6 +39,10 @@ export default class CreditCardCardinalPaymentStrategy implements PaymentStrateg
                     throw new MissingDataError(MissingDataErrorType.MissingPaymentMethod);
                 }
 
+                if (!this._paymentMethod.config.is3dsEnabled) {
+                    return this._store.getState();
+                }
+                
                 return this._cardinalClient.initialize(this._paymentMethod.config.testMode)
                     .then(() => this._store.getState());
             });

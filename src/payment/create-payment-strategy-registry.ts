@@ -164,10 +164,14 @@ export default function createPaymentStrategyRegistry(
     registry.register(PaymentStrategyType.PAYPAL, () =>
         new PaypalProPaymentStrategy(
             store,
-            paymentMethodActionCreator,
             orderActionCreator,
-            paymentActionCreator,
-            new CardinalClient(new CardinalScriptLoader(scriptLoader))
+            new CreditCardCardinalPaymentStrategy(
+                store,
+                paymentMethodActionCreator,
+                orderActionCreator,
+                paymentActionCreator,
+                new CardinalClient(new CardinalScriptLoader(scriptLoader))
+            )
         )
     );
 
