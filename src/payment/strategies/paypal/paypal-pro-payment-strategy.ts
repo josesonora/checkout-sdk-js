@@ -3,15 +3,14 @@ import {
     MissingDataError,
     MissingDataErrorType,
 } from '../../../common/error/errors/index';
-import { OrderActionCreator, OrderRequestBody } from '../../../order/index';
 import { OrderFinalizationNotRequiredError } from '../../../order/errors/index';
+import { OrderActionCreator, OrderRequestBody } from '../../../order/index';
 import PaymentActionCreator from '../../payment-action-creator';
 import PaymentMethod from '../../payment-method';
 import { PaymentInitializeOptions, PaymentRequestOptions } from '../../payment-request-options';
-import PaymentStrategy from '../payment-strategy';
 import * as paymentStatusTypes from '../../payment-status-types';
-
-import CardinalThreeDSecureFlow from "../cardinal/cardinal-three-d-secure-flow";
+import CardinalThreeDSecureFlow from '../cardinal/cardinal-three-d-secure-flow';
+import PaymentStrategy from '../payment-strategy';
 
 export default class PaypalProPaymentStrategy implements PaymentStrategy {
     private _paymentMethod?: PaymentMethod;
