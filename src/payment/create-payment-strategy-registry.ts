@@ -30,14 +30,15 @@ import {
     BraintreeVisaCheckoutPaymentStrategy,
     VisaCheckoutScriptLoader
 } from './strategies/braintree';
-import { ChasePayPaymentStrategy, ChasePayScriptLoader } from './strategies/chasepay';
-import { ConvergePaymentStrategy } from './strategies/converge';
 import {
     CardinalClient,
     CardinalScriptLoader,
-    CreditCardCardinalPaymentStrategy,
-    CreditCardPaymentStrategy
-} from './strategies/credit-card';
+    CardinalThreeDSecureFlow,
+} from './strategies/cardinal';
+import { ChasePayPaymentStrategy, ChasePayScriptLoader } from './strategies/chasepay';
+import { ConvergePaymentStrategy } from './strategies/converge';
+import { CreditCardPaymentStrategy } from './strategies/credit-card';
+import { CybersourcePaymentStrategy } from './strategies/cybersource/index';
 import {
     createGooglePayPaymentProcessor,
     GooglePayBraintreeInitializer,
@@ -120,12 +121,16 @@ export default function createPaymentStrategyRegistry(
     );
 
     registry.register(PaymentStrategyType.CYBERSOURCE, () =>
-        new CreditCardCardinalPaymentStrategy(
+        new CybersourcePaymentStrategy(
             store,
-            paymentMethodActionCreator,
             orderActionCreator,
             paymentActionCreator,
-            new CardinalClient(new CardinalScriptLoader(scriptLoader))
+            new CardinalThreeDSecureFlow(
+                store,
+                paymentActionCreator,
+                paymentMethodActionCreator,
+                new CardinalClient(new CardinalScriptLoader(scriptLoader))
+            )
         )
     );
 
@@ -165,11 +170,11 @@ export default function createPaymentStrategyRegistry(
         new PaypalProPaymentStrategy(
             store,
             orderActionCreator,
-            new CreditCardCardinalPaymentStrategy(
+            paymentActionCreator,
+            new CardinalThreeDSecureFlow(
                 store,
-                paymentMethodActionCreator,
-                orderActionCreator,
                 paymentActionCreator,
+                paymentMethodActionCreator,
                 new CardinalClient(new CardinalScriptLoader(scriptLoader))
             )
         )

@@ -3,17 +3,15 @@ import {
     MissingDataError,
     MissingDataErrorType,
 } from '../../../common/error/errors/index';
-import { OrderActionCreator, OrderRequestBody } from '../../../order/index';
 import { OrderFinalizationNotRequiredError } from '../../../order/errors/index';
+import { OrderActionCreator, OrderRequestBody } from '../../../order/index';
 import PaymentActionCreator from '../../payment-action-creator';
 import PaymentMethod from '../../payment-method';
 import { PaymentInitializeOptions, PaymentRequestOptions } from '../../payment-request-options';
+import CardinalThreeDSecureFlow from '../cardinal/cardinal-three-d-secure-flow';
 import PaymentStrategy from '../payment-strategy';
-import * as paymentStatusTypes from '../../payment-status-types';
 
-import CardinalThreeDSecureFlow from "../cardinal/cardinal-three-d-secure-flow";
-
-export default class PaypalProPaymentStrategy implements PaymentStrategy {
+export default class CybersourcePaymentStrategy implements PaymentStrategy {
     private _paymentMethod?: PaymentMethod;
 
     constructor(
@@ -40,15 +38,6 @@ export default class PaypalProPaymentStrategy implements PaymentStrategy {
     }
 
     execute(payload: OrderRequestBody, options?: PaymentRequestOptions): Promise<InternalCheckoutSelectors> {
-        if (this._isPaymentAcknowledged()) {
-            return this._store.dispatch(
-                this._orderActionCreator.submitOrder({
-                    ...payload,
-                    payment: payload.payment ? { methodId: payload.payment.methodId } : undefined,
-                }, options)
-            );
-        }
-
         const { payment, ...order } = payload;
 
         if (!payment) {
@@ -73,11 +62,5 @@ export default class PaypalProPaymentStrategy implements PaymentStrategy {
 
     deinitialize(options?: PaymentRequestOptions): Promise<InternalCheckoutSelectors> {
         return Promise.resolve(this._store.getState());
-    }
-
-    private _isPaymentAcknowledged(): boolean {
-        const state = this._store.getState();
-
-        return state.payment.getPaymentStatus() === paymentStatusTypes.ACKNOWLEDGE;
     }
 }

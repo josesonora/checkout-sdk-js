@@ -1,6 +1,6 @@
 import { ScriptLoader } from '@bigcommerce/script-loader';
 
-import { StandardError } from '../../../common/error/errors';
+import { StandardError } from '../../../common/error/errors/index';
 
 import { CardinalSDK, CardinalWindow } from './index';
 

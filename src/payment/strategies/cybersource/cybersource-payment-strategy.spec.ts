@@ -5,7 +5,7 @@ import { createScriptLoader } from '@bigcommerce/script-loader';
 import { merge } from 'lodash';
 import { of, Observable } from 'rxjs';
 
-import { getCheckoutStoreState, getCheckoutStoreStateWithOrder, getCheckoutWithPayments } from '../../../checkout/checkouts.mock';
+import { getCheckoutStoreStateWithOrder } from '../../../checkout/checkouts.mock';
 import {
     createCheckoutStore,
     CheckoutRequestSender,
@@ -28,12 +28,16 @@ import { PaymentActionType, SubmitPaymentAction } from '../../payment-actions';
 import PaymentMethod from '../../payment-method';
 import PaymentMethodActionCreator from '../../payment-method-action-creator';
 import PaymentMethodRequestSender from '../../payment-method-request-sender';
-import { getPaypal } from '../../payment-methods.mock';
-import { CardinalClient, CardinalScriptLoader, CardinalThreeDSecureFlow } from '../cardinal/index';
+import { getCybersource } from '../../payment-methods.mock';
+import {
+    CardinalClient,
+    CardinalScriptLoader,
+    CardinalThreeDSecureFlow
+} from '../cardinal/index';
 
-import { PaypalProPaymentStrategy } from './index';
+import { CybersourcePaymentStrategy } from './index';
 
-describe('PaypalProPaymentStrategy', () => {
+describe('CybersourcePaymentStrategy', () => {
     let cardinalClient: CardinalClient;
     let cardinalThreeDSecureFlow: CardinalThreeDSecureFlow;
     let orderActionCreator: OrderActionCreator;
@@ -43,12 +47,12 @@ describe('PaypalProPaymentStrategy', () => {
     let paymentMethodMock: PaymentMethod;
     let scriptLoader: CardinalScriptLoader;
     let store: CheckoutStore;
-    let strategy: PaypalProPaymentStrategy;
+    let strategy: CybersourcePaymentStrategy;
     let submitOrderAction: Observable<Action>;
     let submitPaymentAction: Observable<SubmitPaymentAction>;
 
     beforeEach(() => {
-        paymentMethodMock = {...getPaypal(), clientToken: 'foo'};
+        paymentMethodMock = {...getCybersource(), clientToken: 'foo'};
         store = createCheckoutStore(getCheckoutStoreStateWithOrder());
         paymentMethodActionCreator = new PaymentMethodActionCreator(new PaymentMethodRequestSender(createRequestSender()));
         scriptLoader = new CardinalScriptLoader(createScriptLoader());
@@ -74,7 +78,7 @@ describe('PaypalProPaymentStrategy', () => {
             cardinalClient
         );
 
-        strategy = new PaypalProPaymentStrategy(
+        strategy = new CybersourcePaymentStrategy(
             store,
             orderActionCreator,
             paymentActionCreator,
@@ -166,49 +170,6 @@ describe('PaypalProPaymentStrategy', () => {
 
             expect(cardinalThreeDSecureFlow.start).toHaveBeenCalled();
             expect(result).toBe(store.getState());
-        });
-
-        describe('if payment is acknowledged', () => {
-            beforeEach(() => {
-                const state = getCheckoutStoreState();
-                store = createCheckoutStore({
-                    ...state,
-                    checkout: {
-                        ...state.checkout,
-                        data: getCheckoutWithPayments(),
-                    },
-                });
-
-                strategy = new PaypalProPaymentStrategy(
-                    store,
-                    orderActionCreator,
-                    paymentActionCreator,
-                    cardinalThreeDSecureFlow
-                );
-
-                jest.spyOn(store, 'dispatch');
-            });
-
-            it('submits order with payment method name', async () => {
-                const payload = getOrderRequestBody();
-
-                await strategy.execute(payload);
-
-                expect(orderActionCreator.submitOrder).toHaveBeenCalledWith({
-                    ...payload,
-                    payment: { methodId: payload.payment && payload.payment.methodId },
-                }, undefined);
-                expect(store.dispatch).toHaveBeenCalledWith(submitOrderAction);
-            });
-
-            it('does not submit payment separately', async () => {
-                const payload = getOrderRequestBody();
-
-                await strategy.execute(payload);
-
-                expect(paymentActionCreator.submitPayment).not.toHaveBeenCalled();
-                expect(store.dispatch).not.toHaveBeenCalledWith(submitPaymentAction);
-            });
         });
     });
 

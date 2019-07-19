@@ -4,7 +4,7 @@ import Address from '../../../address/address';
 import {
     MissingDataError, MissingDataErrorType, NotInitializedError,
     NotInitializedErrorType, StandardError
-} from '../../../common/error/errors';
+} from '../../../common/error/errors/index';
 import { CreditCardInstrument, ThreeDSecureToken } from '../../payment';
 import { ThreeDsResult } from '../../payment-response-body';
 
@@ -69,7 +69,7 @@ export default class CardinalClient {
             }));
     }
 
-    runBindProcess(ccNumber: string): Promise<void> {
+    runBinProcess(ccNumber: string): Promise<void> {
         return this._getClientSDK()
             .then(client => client.trigger(CardinalTriggerEvents.BinProcess, ccNumber).catch(() => {}))
             .then(result => {

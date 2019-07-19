@@ -119,7 +119,7 @@ describe('CardinalClient', () => {
         it('collects the data correctly', async () => {
             jest.spyOn(sdk, 'trigger').mockReturnValue(Promise.resolve(getCardinalBinProcessResponse(true)));
 
-            await client.runBindProcess('123456');
+            await client.runBinProcess('123456');
 
             expect(sdk.trigger).toHaveBeenCalledWith(CardinalTriggerEvents.BinProcess, '123456');
         });
@@ -128,7 +128,7 @@ describe('CardinalClient', () => {
             jest.spyOn(sdk, 'trigger').mockReturnValue(Promise.resolve(getCardinalBinProcessResponse(false)));
 
             try {
-                await client.runBindProcess('');
+                await client.runBinProcess('');
             } catch (error) {
                 expect(error).toBeInstanceOf(NotInitializedError);
             }
@@ -140,7 +140,7 @@ describe('CardinalClient', () => {
             });
 
             try {
-                await client.runBindProcess('');
+                await client.runBinProcess('');
             } catch (error) {
                 expect(error).toBeInstanceOf(NotInitializedError);
             }
