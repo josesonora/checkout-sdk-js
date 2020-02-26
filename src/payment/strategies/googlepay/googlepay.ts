@@ -48,7 +48,7 @@ export interface TokenizePayload {
         lastTwo?: string;
     };
     description?: string;
-    type: TokenizeType;
+    type: TokenizeType | string;
     binData?: {
         commercial: string;
         countryOfIssuance: string;
@@ -123,6 +123,21 @@ export enum ButtonColor {
     White = 'white',
 }
 
+export interface TokenizationSpecification {
+    type: string;
+    parameters: {
+        gateway: string;
+        gatewayMerchantId?: string;
+        'braintree:apiVersion'?: string;
+        'braintree:clientKey'?: string;
+        'braintree:merchantId'?: string;
+        'braintree:sdkVersion'?: string;
+        'braintree:authorizationFingerprint'?: string;
+        'stripe:version'?: string;
+        'stripe:publishableKey'?: string;
+    };
+}
+
 export interface GooglePayPaymentDataRequestV2 {
     apiVersion: number;
     apiVersionMinor: number;
@@ -143,20 +158,7 @@ export interface GooglePayPaymentDataRequestV2 {
                 phoneNumberRequired?: boolean;
             };
         };
-        tokenizationSpecification?: {
-            type: string;
-            parameters: {
-                gateway: string;
-                gatewayMerchantId?: string;
-                'braintree:apiVersion'?: string;
-                'braintree:clientKey'?: string;
-                'braintree:merchantId'?: string;
-                'braintree:sdkVersion'?: string;
-                'braintree:authorizationFingerprint'?: string;
-                'stripe:version'?: string;
-                'stripe:publishableKey'?: string;
-            };
-        };
+        tokenizationSpecification?: TokenizationSpecification;
     }];
     transactionInfo: {
         currencyCode: string;
