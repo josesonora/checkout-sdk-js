@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.80.2-alpha.8413d3c5ab98ed75386f57659cb275612909d1b3](https://github.com/bigcommerce/checkout-sdk-js/compare/v1.77.1...v1.80.2-alpha.8413d3c5ab98ed75386f57659cb275612909d1b3) (2020-07-02)
+
+
+### Bug Fixes
+
+* **payment:** CHECKOUT-4973 Initialise hosted payment field within its iframe ([db5610e](https://github.com/bigcommerce/checkout-sdk-js/commit/db5610e))
+* **payment:** INT-2759 Do not mount GiroPay component while initializing payment strategy ([7bc9e54](https://github.com/bigcommerce/checkout-sdk-js/commit/7bc9e54))
+* **payment:** PAYPAL-453 Submit device data to Braintree/Kount ([6506716](https://github.com/bigcommerce/checkout-sdk-js/commit/6506716))
+
+
+### Features
+
+* **checkout:** INT-2274 Add vaulting support for Checkout.com ([89b4608](https://github.com/bigcommerce/checkout-sdk-js/commit/89b4608))
+* **payment:** INT-2113 Checkout button and customer strategy ([908a04d](https://github.com/bigcommerce/checkout-sdk-js/commit/908a04d))
+* **payment:** INT-2119 adding payment and shipping strategies ([c0e9cf3](https://github.com/bigcommerce/checkout-sdk-js/commit/c0e9cf3))
+* **payment:** INT-2119 Create WidgetInteraction action for Shipping Strategy ([ee6757d](https://github.com/bigcommerce/checkout-sdk-js/commit/ee6757d))
+* **payment:** INT-2279 Create a strategy for credit cards with redirect and add support to Checkout.com ([#809](https://github.com/bigcommerce/checkout-sdk-js/issues/809)) ([0f42b13](https://github.com/bigcommerce/checkout-sdk-js/commit/0f42b13))
+* **payment:** INT-2280 Added GooglePay for Checkout.com ([894d863](https://github.com/bigcommerce/checkout-sdk-js/commit/894d863))
+* **payment:** INT-2748 Adding Sezzle strategy ([327ecb5](https://github.com/bigcommerce/checkout-sdk-js/commit/327ecb5))
+
 ### [1.80.1](https://github.com/bigcommerce/checkout-sdk-js/compare/v1.80.0...v1.80.1) (2020-07-02)
 
 
