@@ -50,6 +50,7 @@ import { SquarePaymentStrategy, SquareScriptLoader } from './strategies/square';
 import { StripeScriptLoader, StripeV3PaymentStrategy } from './strategies/stripev3';
 import { WepayPaymentStrategy, WepayRiskClient } from './strategies/wepay';
 import { ZipPaymentStrategy, ZipScriptLoader } from './strategies/zip';
+import BarclaysPaymentStrategy from "./strategies/barclays/barclays-payment-strategy";
 
 export default function createPaymentStrategyRegistry(
     store: CheckoutStore,
@@ -189,6 +190,21 @@ export default function createPaymentStrategyRegistry(
             paymentActionCreator,
             hostedFormFactory,
             formPoster
+        )
+    );
+
+    registry.register(PaymentStrategyType.BARCLAYS, () =>
+        new BarclaysPaymentStrategy(
+            store,
+            orderActionCreator,
+            paymentActionCreator,
+            hostedFormFactory,
+            new CardinalThreeDSecureFlow(
+                store,
+                paymentActionCreator,
+                paymentMethodActionCreator,
+                new CardinalClient(new CardinalScriptLoader(scriptLoader))
+            )
         )
     );
 

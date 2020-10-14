@@ -85,6 +85,10 @@ const supportedInstruments: SupportedInstruments = {
         provider: 'barclaycard',
         method: 'credit_card',
     },
+    barclays: {
+        provider: 'barclays',
+        method: 'credit_card',
+    },
 };
 
 export default supportedInstruments;
