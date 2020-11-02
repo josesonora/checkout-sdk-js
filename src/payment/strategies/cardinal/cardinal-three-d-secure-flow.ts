@@ -23,7 +23,6 @@ export default class CardinalThreeDSecureFlow {
 
     async prepare(method: PaymentMethod): Promise<void> {
         await this._cardinalClient.load(method.id, method.config.testMode);
-        await this._cardinalClient.configure(await this._getClientToken(method));
     }
 
     async start(
@@ -32,44 +31,71 @@ export default class CardinalThreeDSecureFlow {
         options?: PaymentRequestOptions,
         hostedForm?: HostedForm
     ): Promise<InternalCheckoutSelectors> {
-        const { instruments: { getCardInstrument }, paymentMethods: { getPaymentMethodOrThrow } } = this._store.getState();
-        const { payment: { methodId = '', paymentData = {} } = {} } = payload;
+        const { instruments: { getCardInstrument } } = this._store.getState();
+        const { payment: { paymentData = {} } = {} } = payload;
         const instrument = isVaultedInstrument(paymentData) && getCardInstrument(paymentData.instrumentId);
         const bin = instrument ? instrument.iin : hostedForm && hostedForm.getBin();
 
-        if (bin) {
-            await this._cardinalClient.runBinProcess(bin);
-        }
-
         try {
-            return await execute(merge(payload, {
-                payment: {
-                    paymentData: {
-                        threeDSecure: { token: getPaymentMethodOrThrow(methodId).clientToken },
-                    },
-                },
-            }), options);
+            return await execute(payload, options);
         } catch (error) {
-            if (!(error instanceof RequestError) || !some(error.body.errors, { code: 'three_d_secure_required' })) {
+            if (!(error instanceof RequestError) || !this._isAdditionalActionRequired(error)) {
                 throw error;
             }
+            await this._cardinalClient.configure(error.body.additional_action_required.data.token);
 
-            const threeDSecure = await this._cardinalClient.getThreeDSecureData(error.body.three_ds_result, this._getOrderData());
-
-            if (!hostedForm) {
-                return await this._store.dispatch(this._paymentActionCreator.submitPayment(merge(payload.payment, {
-                    paymentData: { threeDSecure },
-                })));
+            if (bin) {
+                await this._cardinalClient.runBinProcess(bin);
             }
 
-            await hostedForm.submit(merge(payload.payment, {
-                paymentData: { threeDSecure },
-            }));
+            const threeDSecure = {
+                xid: error.body.three_ds_result.payer_auth_request,
+            };
 
-            return this._store.getState();
+            try {
+                if (!hostedForm) {
+                    return await this._store.dispatch(this._paymentActionCreator.submitPayment(merge(payload.payment, {
+                        paymentData: { threeDSecure },
+                    })));
+                }
+
+                await hostedForm.submit(merge(payload.payment, {
+                    paymentData: { threeDSecure },
+                }));
+
+                return this._store.getState();
+            } catch (error) {
+                if (!(error instanceof RequestError) || !some(error.body.errors, {code: 'three_d_secure_required'})) {
+                    throw error;
+                }
+
+                await this._cardinalClient.getThreeDSecureData(error.body.three_ds_result, this._getOrderData());
+                const threeDSecure = { token: error.body.three_ds_result.payer_auth_request };
+
+                if (!hostedForm) {
+                    return await this._store.dispatch(this._paymentActionCreator.submitPayment(merge(payload.payment, {
+                        paymentData: { threeDSecure },
+                    })));
+                }
+
+                await hostedForm.submit(merge(payload.payment, {
+                    paymentData: { threeDSecure },
+                }));
+
+                return this._store.getState();
+            }
         }
     }
 
+    private _isAdditionalActionRequired(error: RequestError): boolean {
+        const { additional_action_required, status } = error.body;
+
+        return status === 'additional_action_required'
+            && additional_action_required
+            && additional_action_required.type === 'cardinal_setup';
+    }
+
+    // @ts-ignore
     private async _getClientToken(method: PaymentMethod): Promise<string> {
         if (method.clientToken) {
             return method.clientToken;
